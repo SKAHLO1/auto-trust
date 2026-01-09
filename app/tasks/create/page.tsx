@@ -76,12 +76,11 @@ export default function CreateTaskPage() {
 
       toast.success("Deposit successful! Transaction: " + txHash.slice(0, 10) + "...")
 
-      // 3. Update task status (Backend should ideally listen to events, but we can notify it too)
-      // We might need an endpoint to update status or just rely on the create call if we did it differently.
-      // Since we already created it, let's assume the backend 'createTask' handled the initial state.
-      // Realistically, we should call an endpoint like /api/escrow/deposit to record the txHash
-      // But for this demo, we'll redirect to dashboard.
+      // 3. Record escrow deposit in backend
+      toast.info("Recording escrow deposit...")
+      await api.depositEscrow(task.id, totalAmount, txHash)
 
+      toast.success("Task created successfully!")
       router.push("/dashboard")
     } catch (error: any) {
       console.error(error)
