@@ -1,8 +1,27 @@
-const API_BASE_URL = "http://localhost:5000/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
+// Helper to get user ID from localStorage
+const getUserId = () => {
+    if (typeof window !== "undefined") {
+        return localStorage.getItem("userId") || "anonymous";
+    }
+    return "anonymous";
+};
+
+// Helper to create headers with authentication
+const createHeaders = (additionalHeaders: Record<string, string> = {}) => {
+    return {
+        "Content-Type": "application/json",
+        "x-user-id": getUserId(),
+        ...additionalHeaders,
+    };
+};
 
 export const api = {
     async getTasks() {
-        const res = await fetch(`${API_BASE_URL}/tasks`);
+        const res = await fetch(`${API_BASE_URL}/tasks`, {
+            headers: createHeaders(),
+        });
         if (!res.ok) throw new Error("Failed to fetch tasks");
         return res.json();
     },
@@ -10,21 +29,27 @@ export const api = {
     async createTask(taskData: any) {
         const res = await fetch(`${API_BASE_URL}/tasks`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: createHeaders(),
             body: JSON.stringify(taskData),
         });
         if (!res.ok) throw new Error("Failed to create task");
         return res.json();
     },
 
+    async depositEscrow(taskId: string, amount: number, transactionHash: string) {
+        const res = await fetch(`${API_BASE_URL}/escrow/deposit`, {
+            method: "POST",
+            headers: createHeaders(),
+            body: JSON.stringify({ taskId, amount, transactionHash }),
+        });
+        if (!res.ok) throw new Error("Failed to record escrow deposit");
+        return res.json();
+    },
+
     async getSubmission(submissionId: string) {
-        // This endpoint might need to be created in backend if it doesn't exist specifically for fetching one submission
-        // But we have /api/verify/:submissionId which returns verification status
-        // Let's assume we can fetch submission details. 
-        // If not, we might need to rely on what we have or add an endpoint.
-        // Looking at backend routes, we have /api/submissions (POST) but maybe not GET one.
-        // For now, let's assume we can get verification status.
-        const res = await fetch(`${API_BASE_URL}/verify/${submissionId}`);
+        const res = await fetch(`${API_BASE_URL}/submissions/${submissionId}`, {
+            headers: createHeaders(),
+        });
         if (!res.ok) throw new Error("Failed to fetch submission");
         return res.json();
     },
@@ -32,7 +57,7 @@ export const api = {
     async verifySubmission(submissionId: string) {
         const res = await fetch(`${API_BASE_URL}/verify`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: createHeaders(),
             body: JSON.stringify({ submissionId }),
         });
         if (!res.ok) throw new Error("Failed to verify submission");
