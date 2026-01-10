@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { ArrowRight, Lock, Brain, Zap } from "lucide-react"
+import Link from "next/link"
 
 export default function Home() {
   const [isScrolled, setIsScrolled] = useState(false)
@@ -27,7 +28,9 @@ export default function Home() {
               Docs
             </a>
           </div>
-          <Button className="bg-primary text-primary-foreground hover:bg-primary/90">Sign In</Button>
+          <Link href="/auth/login">
+            <Button className="bg-primary text-primary-foreground hover:bg-primary/90">Sign In</Button>
+          </Link>
         </div>
       </nav>
 
@@ -46,12 +49,16 @@ export default function Home() {
                 intermediaries, no delays.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 w-full sm:w-auto">
-                  Get Started <ArrowRight className="ml-2 w-4 h-4" />
-                </Button>
-                <Button size="lg" variant="outline" className="w-full sm:w-auto bg-transparent">
-                  View Demo
-                </Button>
+                <Link href="/auth/signup">
+                  <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 w-full sm:w-auto">
+                    Get Started <ArrowRight className="ml-2 w-4 h-4" />
+                  </Button>
+                </Link>
+                <Link href="/auth/login">
+                  <Button size="lg" variant="outline" className="w-full sm:w-auto bg-transparent">
+                    Sign In
+                  </Button>
+                </Link>
               </div>
             </div>
 
@@ -139,9 +146,11 @@ export default function Home() {
           <p className="text-muted-foreground text-lg mb-8">
             Start creating tasks and using AI-verified escrow in minutes
           </p>
-          <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90">
-            Launch Dashboard <ArrowRight className="ml-2 w-4 h-4" />
-          </Button>
+          <Link href="/auth/signup">
+            <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90">
+              Get Started Free <ArrowRight className="ml-2 w-4 h-4" />
+            </Button>
+          </Link>
         </div>
       </section>
     </div>
