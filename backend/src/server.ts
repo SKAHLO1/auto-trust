@@ -10,6 +10,7 @@ import healthRouter from './routes/health';
 import mneeRouter from './routes/mnee';
 import disputesRouter from './routes/disputes';
 import paymentsRouter from './routes/payments';
+import cronRouter from './routes/cron';
 import escrowTimeoutService from './services/escrow-timeout.service';
 
 // Load environment variables
@@ -40,6 +41,7 @@ app.use('/api/health', healthRouter);
 app.use('/api/mnee', mneeRouter);
 app.use('/api/disputes', disputesRouter);
 app.use('/api/payments', paymentsRouter);
+app.use('/api/cron', cronRouter);
 
 // Error handling middleware
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
@@ -53,22 +55,7 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 app.listen(PORT, () => {
   console.log(`AutoTrust MNEE backend running on port ${PORT}`);
   console.log(`Environment: ${process.env.MNEE_ENVIRONMENT || 'production'}`);
-  
-  // Start escrow timeout checker (runs every 24 hours)
-  setInterval(async () => {
-    try {
-      console.log('Running escrow timeout check...');
-      await escrowTimeoutService.processExpiredEscrows();
-      console.log('Escrow timeout check completed');
-    } catch (error) {
-      console.error('Escrow timeout check failed:', error);
-    }
-  }, 24 * 60 * 60 * 1000); // Run every 24 hours
-  
-  // Run once on startup
-  escrowTimeoutService.processExpiredEscrows().catch((err: any) => 
-    console.error('Initial escrow timeout check failed:', err)
-  );
+  console.log(`Cron endpoint available at: ${process.env.BACKEND_URL || 'http://localhost:5000'}/api/cron/trigger`);
 });
 
 export default app;
