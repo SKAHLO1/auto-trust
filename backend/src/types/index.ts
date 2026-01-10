@@ -27,13 +27,15 @@ export interface Task {
   milestones: Milestone[];
   totalBudget: number;
   verificationCriteria: VerificationCriteria;
-  status: 'active' | 'completed' | 'cancelled';
+  status: 'active' | 'completed' | 'cancelled' | 'disputed' | 'submitted';
   escrowAmount: number;
   escrowStatus: 'pending' | 'locked' | 'released' | 'refunded';
+  deadline?: string;
   createdAt: string;
   updatedAt: string;
   mneeWalletAddress?: string;
   mneeTransactionId?: string;
+  cancelReason?: string;
 }
 
 // Submission types
