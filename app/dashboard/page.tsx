@@ -148,9 +148,11 @@ export default function Dashboard() {
                         <span>Deadline: {task.deadline ? new Date(task.deadline).toLocaleDateString() : 'No deadline'}</span>
                       </div>
                     </div>
-                    <Button variant="ghost" size="sm">
-                      <Eye className="w-4 h-4" />
-                    </Button>
+                    <Link href={`/tasks/${task.id}`}>
+                      <Button variant="ghost" size="sm">
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                    </Link>
                   </div>
                 </Card>
               ))}
