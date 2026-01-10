@@ -2,14 +2,18 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Upload, LinkIcon, CheckCircle } from "lucide-react"
+import { Upload, LinkIcon, CheckCircle, Loader } from "lucide-react"
+import { api } from "@/lib/api"
+import { toast } from "sonner"
+import { useRouter } from "next/navigation"
 
 type SubmissionType = "github" | "file" | "url"
 
 export default function SubmitWorkPage({ params }: { params: { taskId: string } }) {
+  const router = useRouter()
   const [submissionType, setSubmissionType] = useState<SubmissionType>("github")
   const [submission, setSubmission] = useState({
     github: "",
@@ -19,13 +23,22 @@ export default function SubmitWorkPage({ params }: { params: { taskId: string } 
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [task, setTask] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
 
-  const taskInfo = {
-    id: params.taskId,
-    title: "Build REST API with Authentication",
-    milestone: "User Management",
-    expectedAmount: 25,
-  }
+  useEffect(() => {
+    const fetchTask = async () => {
+      try {
+        const taskData = await api.getTaskById(params.taskId)
+        setTask(taskData)
+      } catch (error) {
+        toast.error("Failed to load task details")
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchTask()
+  }, [params.taskId])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
@@ -35,11 +48,50 @@ export default function SubmitWorkPage({ params }: { params: { taskId: string } 
   }
 
   const handleSubmit = async () => {
-    setIsSubmitting(true)
-    // Simulate submission delay
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    setIsSubmitting(false)
-    setSubmitted(true)
+    try {
+      setIsSubmitting(true)
+      
+      let submissionLink = ""
+      if (submissionType === "github") {
+        submissionLink = submission.github
+      } else if (submissionType === "url") {
+        submissionLink = submission.url
+      } else if (submissionType === "file" && submission.file) {
+        // For file uploads, we'd need to implement file upload endpoint
+        // For now, just use the filename
+        submissionLink = `File: ${submission.file.name}`
+        toast.warning("File upload not yet implemented. Using filename as placeholder.")
+      }
+
+      await api.createSubmission(params.taskId, {
+        submissionLink,
+        notes: submission.notes,
+        deliverableType: submissionType,
+      })
+
+      toast.success("Work submitted successfully!")
+      setSubmitted(true)
+    } catch (error: any) {
+      console.error("Submission error:", error)
+      toast.error(error.message || "Failed to submit work")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  const taskInfo = {
+    id: params.taskId,
+    title: task?.title || "Task",
+    milestone: task?.milestones?.[0]?.name || "Milestone",
+    expectedAmount: task?.totalBudget || task?.amount || 0,
   }
 
   if (submitted) {
@@ -67,7 +119,12 @@ export default function SubmitWorkPage({ params }: { params: { taskId: string } 
             The AI agent is analyzing your submission. We'll notify you when verification is complete.
           </p>
 
-          <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90">View Task</Button>
+          <Button 
+            onClick={() => router.push(`/tasks/${params.taskId}`)}
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            View Task
+          </Button>
         </Card>
       </div>
     )
