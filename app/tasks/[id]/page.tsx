@@ -1,33 +1,68 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { CheckCircle, Clock, Lock } from "lucide-react"
+import { CheckCircle, Clock, Lock, Loader } from "lucide-react"
+import { api } from "@/lib/api"
+import { toast } from "sonner"
+import Link from "next/link"
 
 export default function TaskDetailPage({ params }: { params: { id: string } }) {
-  const [task] = useState({
-    id: params.id,
-    title: "Build REST API with Authentication",
-    description:
-      "Create a production-ready REST API with JWT authentication, user management, and proper error handling.",
-    status: "submitted" as const,
-    milestones: [
-      {
-        id: 1,
-        name: "Core API Setup",
-        description: "Database schema, basic endpoints",
-        amount: 40,
-        status: "completed",
-      },
-      { id: 2, name: "Authentication", description: "JWT implementation", amount: 35, status: "completed" },
-      { id: 3, name: "User Management", description: "CRUD operations", amount: 25, status: "submitted" },
-    ],
-    totalAmount: 100,
-    deadline: "2025-02-15",
-    verificationCriteria: "Code compiles, all endpoints working, tests pass, authentication works, README complete",
-    submissionLink: "https://github.com/worker/api-repo",
-  })
+  const [task, setTask] = useState<any>(null)
+  const [submissions, setSubmissions] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchTaskData = async () => {
+      try {
+        setLoading(true)
+        const taskData = await api.getTaskById(params.id)
+        setTask(taskData)
+        
+        // Try to fetch submissions
+        try {
+          const submissionsData = await api.getTaskSubmissions(params.id)
+          setSubmissions(Array.isArray(submissionsData) ? submissionsData : [])
+        } catch (err) {
+          console.log("No submissions found")
+          setSubmissions([])
+        }
+      } catch (error: any) {
+        console.error("Failed to load task", error)
+        toast.error("Failed to load task details")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchTaskData()
+  }, [params.id])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (!task) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="bg-card border-border p-8 max-w-md w-full text-center">
+          <p className="text-muted-foreground">Task not found</p>
+          <Link href="/dashboard">
+            <Button className="mt-4">Back to Dashboard</Button>
+          </Link>
+        </Card>
+      </div>
+    )
+  }
+
+  const milestones = task.milestones || []
+  const totalAmount = task.totalBudget || task.amount || 0
+  const latestSubmission = submissions[0]
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -82,8 +117,9 @@ export default function TaskDetailPage({ params }: { params: { id: string } }) {
             {/* Milestones */}
             <div>
               <h2 className="text-2xl font-bold mb-6">Milestones</h2>
+              {milestones.length > 0 ? (
               <div className="space-y-4">
-                {task.milestones.map((milestone) => (
+                {milestones.map((milestone: any, index: number) => (
                   <Card key={milestone.id} className="bg-card border-border p-6">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex-1">
@@ -134,6 +170,11 @@ export default function TaskDetailPage({ params }: { params: { id: string } }) {
                   </Card>
                 ))}
               </div>
+              ) : (
+                <Card className="bg-card border-border p-6">
+                  <p className="text-muted-foreground text-center">No milestones defined for this task</p>
+                </Card>
+              )}
             </div>
 
             {/* Verification Criteria */}
@@ -145,14 +186,29 @@ export default function TaskDetailPage({ params }: { params: { id: string } }) {
             </div>
 
             {/* Submission */}
-            {task.status === "submitted" && (
+            {latestSubmission && (
               <div>
                 <h2 className="text-2xl font-bold mb-4">Work Submission</h2>
                 <Card className="bg-card border-border p-6">
                   <p className="text-muted-foreground text-sm mb-2">Submitted Link</p>
-                  <p className="font-mono text-primary">{task.submissionLink}</p>
+                  <p className="font-mono text-primary">{latestSubmission.submissionLink || "No link provided"}</p>
+                  {latestSubmission.notes && (
+                    <>
+                      <p className="text-muted-foreground text-sm mb-2 mt-4">Notes</p>
+                      <p className="text-foreground">{latestSubmission.notes}</p>
+                    </>
+                  )}
                 </Card>
               </div>
+            )}
+            
+            {/* Submit Work Button */}
+            {task.status === "open" && (
+              <Link href={`/work/submit/${task.id}`}>
+                <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
+                  Submit Your Work
+                </Button>
+              </Link>
             )}
           </div>
 
@@ -167,25 +223,29 @@ export default function TaskDetailPage({ params }: { params: { id: string } }) {
 
               <div className="space-y-3">
                 <div>
-                  <p className="text-muted-foreground text-sm">Total Locked</p>
-                  <p className="text-2xl font-bold text-primary">{task.totalAmount} MNEE</p>
+                  <p className="text-muted-foreground text-sm">Total Budget</p>
+                  <p className="text-2xl font-bold text-primary">{totalAmount} MNEE</p>
                 </div>
 
                 <div className="border-t border-border pt-3">
-                  <p className="text-muted-foreground text-sm">Released</p>
-                  <p className="text-xl font-bold text-green-400">75 MNEE</p>
+                  <p className="text-muted-foreground text-sm">Status</p>
+                  <p className="text-xl font-bold capitalize">{task.status || "Open"}</p>
                 </div>
 
-                <div className="border-t border-border pt-3">
-                  <p className="text-muted-foreground text-sm">Pending</p>
-                  <p className="text-xl font-bold text-yellow-400">25 MNEE</p>
-                </div>
+                {task.escrowStatus && (
+                  <div className="border-t border-border pt-3">
+                    <p className="text-muted-foreground text-sm">Escrow</p>
+                    <p className="text-xl font-bold text-green-400 capitalize">{task.escrowStatus}</p>
+                  </div>
+                )}
               </div>
 
-              <div className="mt-6 pt-6 border-t border-border space-y-3">
-                <p className="text-muted-foreground text-sm">Deadline</p>
-                <p className="font-semibold">{new Date(task.deadline).toLocaleDateString()}</p>
-              </div>
+              {task.deadline && (
+                <div className="mt-6 pt-6 border-t border-border space-y-3">
+                  <p className="text-muted-foreground text-sm">Deadline</p>
+                  <p className="font-semibold">{new Date(task.deadline).toLocaleDateString()}</p>
+                </div>
+              )}
             </Card>
 
             {/* Action Buttons */}
