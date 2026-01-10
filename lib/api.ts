@@ -62,5 +62,76 @@ export const api = {
         });
         if (!res.ok) throw new Error("Failed to verify submission");
         return res.json();
-    }
+    },
+
+    async getTaskById(taskId: string) {
+        const res = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
+            headers: createHeaders(),
+        });
+        if (!res.ok) throw new Error("Failed to fetch task");
+        return res.json();
+    },
+
+    async createSubmission(taskId: string, submissionData: any) {
+        const res = await fetch(`${API_BASE_URL}/submissions`, {
+            method: "POST",
+            headers: createHeaders(),
+            body: JSON.stringify({ taskId, ...submissionData }),
+        });
+        if (!res.ok) throw new Error("Failed to create submission");
+        return res.json();
+    },
+
+    async getTaskSubmissions(taskId: string) {
+        const res = await fetch(`${API_BASE_URL}/submissions/task/${taskId}`, {
+            headers: createHeaders(),
+        });
+        if (!res.ok) throw new Error("Failed to fetch submissions");
+        return res.json();
+    },
+
+    async releasePayment(submissionId: string, recipientAddress: string, escrowPrivateKey: string) {
+        const res = await fetch(`${API_BASE_URL}/escrow/release`, {
+            method: "POST",
+            headers: createHeaders(),
+            body: JSON.stringify({ submissionId, recipientAddress, escrowPrivateKey }),
+        });
+        if (!res.ok) throw new Error("Failed to release payment");
+        return res.json();
+    },
+
+    async refundPayment(taskId: string, escrowPrivateKey: string) {
+        const res = await fetch(`${API_BASE_URL}/escrow/refund`, {
+            method: "POST",
+            headers: createHeaders(),
+            body: JSON.stringify({ taskId, escrowPrivateKey }),
+        });
+        if (!res.ok) throw new Error("Failed to refund payment");
+        return res.json();
+    },
+
+    async getEscrowStatus(taskId: string) {
+        const response = await fetch(`${API_BASE_URL}/escrow/status/${taskId}`, {
+            headers: createHeaders(),
+        });
+        if (!response.ok) throw new Error("Failed to get escrow status");
+        return response.json();
+    },
+
+    // Payment History
+    async getPaymentHistory() {
+        const response = await fetch(`${API_BASE_URL}/payments`, {
+            headers: createHeaders(),
+        });
+        if (!response.ok) throw new Error("Failed to get payment history");
+        return response.json();
+    },
+
+    async getPaymentSummary() {
+        const response = await fetch(`${API_BASE_URL}/payments/summary`, {
+            headers: createHeaders(),
+        });
+        if (!response.ok) throw new Error("Failed to get payment summary");
+        return response.json();
+    },
 };
