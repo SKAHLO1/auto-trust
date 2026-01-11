@@ -1,26 +1,36 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { getUserProfile } from "@/lib/user-profile"
+import { useAuth } from "@/lib/auth-context"
 import { Loader } from "lucide-react"
 
 export default function Dashboard() {
   const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
+  const [redirecting, setRedirecting] = useState(false)
 
   useEffect(() => {
     const redirectToDashboard = async () => {
-      try {
-        const userId = localStorage.getItem('userId')
-        
-        if (!userId) {
-          router.push('/auth/login')
-          return
-        }
+      // Wait for auth to finish loading
+      if (authLoading) return
 
-        const profile = await getUserProfile(userId)
+      // If no user, redirect to login
+      if (!user) {
+        router.push('/auth/login')
+        return
+      }
+
+      if (redirecting) return
+      setRedirecting(true)
+
+      try {
+        const profile = await getUserProfile(user.uid)
         
         if (!profile) {
+          // User authenticated but no profile, redirect to login to recreate
+          console.warn('User authenticated but no profile found')
           router.push('/auth/login')
           return
         }
@@ -35,13 +45,13 @@ export default function Dashboard() {
           router.push('/dashboard/employer')
         }
       } catch (error) {
-        console.error('Failed to load user profile', error)
+        console.error('Failed to load user profile:', error)
         router.push('/auth/login')
       }
     }
 
     redirectToDashboard()
-  }, [router])
+  }, [user, authLoading, router, redirecting])
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">

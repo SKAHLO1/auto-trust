@@ -5,6 +5,7 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { Toaster } from "@/components/ui/sonner"
 import { WalletProvider } from "@/lib/wallet-context"
+import { AuthProvider } from "@/lib/auth-context"
 import { ConnectWalletModal } from "@/components/connect-wallet-modal"
 import { Analytics } from "@vercel/analytics/next"
 
@@ -43,12 +44,14 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`font-sans antialiased`}>
-        <WalletProvider>
-          {children}
-          <ConnectWalletModal />
-          <Toaster />
-          <Analytics />
-        </WalletProvider>
+        <AuthProvider>
+          <WalletProvider>
+            {children}
+            <ConnectWalletModal />
+            <Toaster />
+            <Analytics />
+          </WalletProvider>
+        </AuthProvider>
       </body>
     </html>
   )
