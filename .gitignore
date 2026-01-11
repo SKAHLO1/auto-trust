@@ -31,3 +31,5 @@ QUICK_DEPLOY.md
 DEPLOYMENT.md
 DEPLOY_NOW.md
 UPTIMEROBOT_CRON_SETUP.md
+firestore.rules
+storage.rules

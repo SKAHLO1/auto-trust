@@ -41,9 +41,6 @@ export default function SignUpPage() {
       toast.error(error)
       setLoading(false)
     } else if (user) {
-      // Save userId to localStorage for dashboard redirect
-      localStorage.setItem('userId', user.uid)
-      
       // Create user profile with role
       try {
         await createUserProfile(
@@ -75,9 +72,6 @@ export default function SignUpPage() {
       toast.error(error)
       setLoading(false)
     } else if (user) {
-      // Save userId to localStorage for dashboard redirect
-      localStorage.setItem('userId', user.uid)
-      
       // Create user profile with selected role
       try {
         await createUserProfile(

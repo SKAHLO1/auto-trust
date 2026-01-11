@@ -26,8 +26,6 @@ export default function LoginPage() {
       toast.error(error)
       setLoading(false)
     } else if (user) {
-      // Save userId to localStorage for dashboard redirect
-      localStorage.setItem('userId', user.uid)
       toast.success("Welcome back!")
       router.push("/dashboard")
     }
@@ -41,8 +39,6 @@ export default function LoginPage() {
       toast.error(error)
       setLoading(false)
     } else if (user) {
-      // Save userId to localStorage for dashboard redirect
-      localStorage.setItem('userId', user.uid)
       toast.success("Welcome back!")
       router.push("/dashboard")
     }
