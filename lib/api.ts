@@ -47,7 +47,13 @@ export const api = {
             headers: createHeaders(),
             body: JSON.stringify({ taskId, amount, transactionHash }),
         });
-        if (!res.ok) throw new Error("Failed to record escrow deposit");
+        if (!res.ok) {
+            const errorData = await res.json().catch(() => ({}));
+            const errorMessage = errorData.error || errorData.message || "Failed to record escrow deposit";
+            console.error("Escrow deposit recording failed:", errorData);
+            console.error("Sent data:", { taskId, amount, transactionHash });
+            throw new Error(errorMessage);
+        }
         return res.json();
     },
 

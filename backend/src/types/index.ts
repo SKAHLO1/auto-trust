@@ -78,7 +78,7 @@ export interface Escrow {
   mneeTicketId?: string;
   deposittedAt: string;
   releasedAt: string | null;
-  senderAddress: string;
+  senderAddress?: string;
   recipientAddress?: string;
 }
 
