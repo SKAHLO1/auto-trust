@@ -9,7 +9,7 @@ const getUserId = (req: Request): string | undefined => {
   return req.headers['x-user-id'] as string;
 };
 
-// Deposit funds to escrow via MNEE
+// Deposit funds to escrow (supports both MNEE blockchain and smart contract deposits)
 router.post('/deposit', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = getUserId(req);
@@ -17,51 +17,75 @@ router.post('/deposit', async (req: AuthenticatedRequest, res: Response) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const { taskId, amount, senderAddress, escrowAddress, senderPrivateKey } = req.body;
+    const { taskId, amount, senderAddress, escrowAddress, senderPrivateKey, transactionHash } = req.body;
 
-    // Validate inputs
-    if (!taskId || !amount || !escrowAddress || !senderPrivateKey) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    // Validate basic required fields
+    if (!taskId || !amount) {
+      return res.status(400).json({ error: 'Missing required fields: taskId and amount' });
     }
 
-    // Create MNEE escrow deposit transaction
-    const callbackUrl = process.env.WEBHOOK_CALLBACK_URL;
-    const result = await mneeService.createEscrowDeposit(
-      senderPrivateKey,
-      amount,
-      escrowAddress,
-      callbackUrl
-    );
+    let result: any = {};
+    let txId = transactionHash;
+
+    // Check if this is a MNEE blockchain deposit (has private key) or smart contract deposit (has tx hash)
+    if (senderPrivateKey && escrowAddress) {
+      // Legacy MNEE blockchain deposit
+      const callbackUrl = process.env.WEBHOOK_CALLBACK_URL;
+      result = await mneeService.createEscrowDeposit(
+        senderPrivateKey,
+        amount,
+        escrowAddress,
+        callbackUrl
+      );
+      txId = result.txId;
+    } else if (transactionHash) {
+      // New smart contract deposit (MNEE token or ETH)
+      // Transaction already completed on-chain, just record it
+      result.txId = transactionHash;
+    } else {
+      return res.status(400).json({ 
+        error: 'Either provide (senderPrivateKey + escrowAddress) for MNEE blockchain or (transactionHash) for smart contract deposit' 
+      });
+    }
 
     const escrowRef = db.collection('escrows').doc();
-    const escrowData: Escrow = {
+    const escrowData: any = {
       id: escrowRef.id,
       taskId,
       depositorId: userId,
       amount,
       status: 'locked',
-      mneeTransactionId: result.txId || '',
-      mneeTicketId: result.ticketId,
+      mneeTransactionId: txId || '',
       deposittedAt: new Date().toISOString(),
       releasedAt: null,
-      senderAddress,
     };
+
+    // Add optional fields
+    if (result.ticketId) escrowData.mneeTicketId = result.ticketId;
+    if (senderAddress) escrowData.senderAddress = senderAddress;
 
     await escrowRef.set(escrowData);
 
     // Update task escrow status
-    await db.collection('tasks').doc(taskId).update({
+    const taskUpdate: any = {
       escrowStatus: 'locked',
       escrowAmount: amount,
-      mneeTransactionId: result.txId,
-    });
+      status: 'active', // Change from pending_deposit to active
+      updatedAt: new Date().toISOString(),
+    };
+    
+    if (txId) taskUpdate.mneeTransactionId = txId;
+
+    await db.collection('tasks').doc(taskId).update(taskUpdate);
 
     res.status(201).json({
       escrow: escrowData,
       transaction: result,
+      message: 'Escrow deposit recorded successfully',
     });
   } catch (error: any) {
     console.error('Escrow deposit error:', error);
+    console.error('Request body:', req.body);
     res.status(500).json({ error: error.message });
   }
 });
@@ -173,6 +197,11 @@ router.post('/refund', async (req: Request, res: Response) => {
     // Check if escrow is in locked status
     if (escrow.status !== 'locked') {
       return res.status(400).json({ error: 'Escrow is not in locked status' });
+    }
+
+    // Validate sender address for MNEE refund
+    if (!escrow.senderAddress) {
+      return res.status(400).json({ error: 'Sender address not found for refund' });
     }
 
     // Refund payment via MNEE back to original sender
