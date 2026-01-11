@@ -74,7 +74,7 @@ export interface Escrow {
   depositorId: string;
   amount: number;
   status: 'locked' | 'released' | 'refunded';
-  mneeTransactionId: string;
+  mneeTransactionId?: string;
   mneeTicketId?: string;
   deposittedAt: string;
   releasedAt: string | null;

@@ -59,6 +59,12 @@ class EscrowTimeoutService {
         return;
       }
 
+      // Validate sender address exists
+      if (!escrow.senderAddress) {
+        console.error('Sender address not found, cannot process auto-refund');
+        return;
+      }
+
       // Perform refund via MNEE
       const callbackUrl = process.env.WEBHOOK_CALLBACK_URL;
       const result = await mneeService.refundEscrowPayment(
@@ -69,12 +75,14 @@ class EscrowTimeoutService {
       );
 
       // Update escrow status
-      await db.collection('escrows').doc(escrow.id).update({
+      const escrowUpdate: any = {
         status: 'refunded',
         releasedAt: new Date().toISOString(),
-        mneeTransactionId: result.txId,
         refundReason: 'auto_refund_timeout',
-      });
+      };
+      if (result.txId) escrowUpdate.mneeTransactionId = result.txId;
+      
+      await db.collection('escrows').doc(escrow.id).update(escrowUpdate);
 
       // Update task status
       await db.collection('tasks').doc(task.id).update({

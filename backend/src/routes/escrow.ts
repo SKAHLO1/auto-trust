@@ -55,12 +55,12 @@ router.post('/deposit', async (req: AuthenticatedRequest, res: Response) => {
       depositorId: userId,
       amount,
       status: 'locked',
-      mneeTransactionId: txId || '',
       deposittedAt: new Date().toISOString(),
       releasedAt: null,
     };
 
     // Add optional fields
+    if (txId) escrowData.mneeTransactionId = txId;
     if (result.ticketId) escrowData.mneeTicketId = result.ticketId;
     if (senderAddress) escrowData.senderAddress = senderAddress;
 
@@ -143,12 +143,14 @@ router.post('/release', async (req: Request, res: Response) => {
     );
 
     // Update escrow status
-    await db.collection('escrows').doc(escrowDoc.id).update({
+    const escrowUpdate: any = {
       status: 'released',
       releasedAt: new Date().toISOString(),
       recipientAddress,
-      mneeTransactionId: result.txId,
-    });
+    };
+    if (result.txId) escrowUpdate.mneeTransactionId = result.txId;
+    
+    await db.collection('escrows').doc(escrowDoc.id).update(escrowUpdate);
 
     // Update task status
     await db.collection('tasks').doc(submission.taskId).update({
@@ -214,11 +216,13 @@ router.post('/refund', async (req: Request, res: Response) => {
     );
 
     // Update escrow status
-    await db.collection('escrows').doc(escrowDoc.id).update({
+    const escrowRefundUpdate: any = {
       status: 'refunded',
       releasedAt: new Date().toISOString(),
-      mneeTransactionId: result.txId,
-    });
+    };
+    if (result.txId) escrowRefundUpdate.mneeTransactionId = result.txId;
+    
+    await db.collection('escrows').doc(escrowDoc.id).update(escrowRefundUpdate);
 
     // Update task status
     await db.collection('tasks').doc(taskId).update({
