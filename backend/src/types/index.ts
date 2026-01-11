@@ -27,9 +27,11 @@ export interface Task {
   milestones: Milestone[];
   totalBudget: number;
   verificationCriteria: VerificationCriteria;
-  status: 'active' | 'completed' | 'cancelled' | 'disputed' | 'submitted';
+  status: 'active' | 'completed' | 'cancelled' | 'disputed' | 'submitted' | 'pending_deposit';
   escrowAmount: number;
   escrowStatus: 'pending' | 'locked' | 'released' | 'refunded';
+  paymentMethod?: 'MNEE' | 'ETH';
+  deliverableType?: string;
   deadline?: string;
   createdAt: string;
   updatedAt: string;
