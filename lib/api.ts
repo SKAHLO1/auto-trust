@@ -71,7 +71,12 @@ export const api = {
             headers: createHeaders(),
             body: JSON.stringify({ submissionId }),
         });
-        if (!res.ok) throw new Error("Failed to verify submission");
+        if (!res.ok) {
+            const errorData = await res.json().catch(() => ({}));
+            const errorMessage = errorData.error || errorData.message || "Failed to verify submission";
+            console.error("Verification failed:", errorData);
+            throw new Error(errorMessage);
+        }
         return res.json();
     },
 
@@ -101,13 +106,17 @@ export const api = {
         return res.json();
     },
 
-    async releasePayment(submissionId: string, recipientAddress: string, escrowPrivateKey: string) {
+    async releasePayment(submissionId: string) {
         const res = await fetch(`${API_BASE_URL}/escrow/release`, {
             method: "POST",
             headers: createHeaders(),
-            body: JSON.stringify({ submissionId, recipientAddress, escrowPrivateKey }),
+            body: JSON.stringify({ submissionId }),
         });
-        if (!res.ok) throw new Error("Failed to release payment");
+        if (!res.ok) {
+            const errorData = await res.json().catch(() => ({}));
+            const errorMessage = errorData.error || "Failed to release payment";
+            throw new Error(errorMessage);
+        }
         return res.json();
     },
 

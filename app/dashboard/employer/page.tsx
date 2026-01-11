@@ -193,7 +193,27 @@ export default function EmployerDashboard() {
 
         {/* Tasks List */}
         <div>
-          <h2 className="text-2xl font-bold mb-6">My Tasks</h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold">My Tasks</h2>
+            <Button
+              onClick={fetchTasks}
+              disabled={loading}
+              variant="outline"
+              className="border-border"
+            >
+              {loading ? (
+                <>
+                  <Loader className="w-4 h-4 mr-2 animate-spin" />
+                  Refreshing...
+                </>
+              ) : (
+                <>
+                  <Clock className="w-4 h-4 mr-2" />
+                  Refresh
+                </>
+              )}
+            </Button>
+          </div>
 
           {loading ? (
             <div className="flex justify-center p-12">

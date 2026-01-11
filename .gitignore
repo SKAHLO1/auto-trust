@@ -34,3 +34,4 @@ UPTIMEROBOT_CRON_SETUP.md
 firestore.rules
 storage.rules
 TASK_CREATION_FIX.md
+PAYMENT_RELEASE_FLOW.md

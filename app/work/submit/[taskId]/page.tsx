@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, use } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Upload, LinkIcon, CheckCircle, Loader } from "lucide-react"
@@ -12,7 +12,10 @@ import { useRouter } from "next/navigation"
 
 type SubmissionType = "github" | "file" | "url"
 
-export default function SubmitWorkPage({ params }: { params: { taskId: string } }) {
+export default function SubmitWorkPage({ params }: { params: Promise<{ taskId: string }> }) {
+  // Unwrap the params Promise (Next.js 15+ requirement)
+  const { taskId } = use(params)
+  
   const router = useRouter()
   const [submissionType, setSubmissionType] = useState<SubmissionType>("github")
   const [submission, setSubmission] = useState({
@@ -20,6 +23,7 @@ export default function SubmitWorkPage({ params }: { params: { taskId: string } 
     file: null as File | null,
     url: "",
     notes: "",
+    walletAddress: "",
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -29,7 +33,7 @@ export default function SubmitWorkPage({ params }: { params: { taskId: string } 
   useEffect(() => {
     const fetchTask = async () => {
       try {
-        const taskData = await api.getTaskById(params.taskId)
+        const taskData = await api.getTaskById(taskId)
         setTask(taskData)
       } catch (error) {
         toast.error("Failed to load task details")
@@ -38,7 +42,7 @@ export default function SubmitWorkPage({ params }: { params: { taskId: string } 
       }
     }
     fetchTask()
-  }, [params.taskId])
+  }, [taskId])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
@@ -51,6 +55,13 @@ export default function SubmitWorkPage({ params }: { params: { taskId: string } 
     try {
       setIsSubmitting(true)
       
+      // Validate wallet address
+      if (!submission.walletAddress || submission.walletAddress.trim() === "") {
+        toast.error("Please enter your wallet address to receive payment")
+        setIsSubmitting(false)
+        return
+      }
+
       let submissionLink = ""
       if (submissionType === "github") {
         submissionLink = submission.github
@@ -63,9 +74,24 @@ export default function SubmitWorkPage({ params }: { params: { taskId: string } 
         toast.warning("File upload not yet implemented. Using filename as placeholder.")
       }
 
-      await api.createSubmission(params.taskId, {
+      if (!submissionLink || submissionLink.trim() === "") {
+        toast.error("Please provide a submission link")
+        setIsSubmitting(false)
+        return
+      }
+
+      console.log('Submitting work:', {
+        taskId,
         submissionLink,
         notes: submission.notes,
+        walletAddress: submission.walletAddress,
+        deliverableType: submissionType,
+      })
+
+      await api.createSubmission(taskId, {
+        submissionLink,
+        notes: submission.notes,
+        walletAddress: submission.walletAddress,
         deliverableType: submissionType,
       })
 
@@ -88,7 +114,7 @@ export default function SubmitWorkPage({ params }: { params: { taskId: string } 
   }
 
   const taskInfo = {
-    id: params.taskId,
+    id: taskId,
     title: task?.title || "Task",
     milestone: task?.milestones?.[0]?.name || "Milestone",
     expectedAmount: task?.totalBudget || task?.amount || 0,
@@ -120,7 +146,7 @@ export default function SubmitWorkPage({ params }: { params: { taskId: string } 
           </p>
 
           <Button 
-            onClick={() => router.push(`/tasks/${params.taskId}`)}
+            onClick={() => router.push(`/tasks/${taskId}`)}
             className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
           >
             View Task
@@ -233,8 +259,26 @@ export default function SubmitWorkPage({ params }: { params: { taskId: string } 
                 </div>
               )}
 
-              {/* Notes */}
+              {/* Wallet Address */}
               <div className="mt-8 pt-8 border-t border-border">
+                <label className="block text-sm font-medium mb-2">
+                  Payment Wallet Address <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="0x... (Your MNEE or ETH wallet address)"
+                  value={submission.walletAddress}
+                  onChange={(e) => setSubmission((prev) => ({ ...prev, walletAddress: e.target.value }))}
+                  className="w-full bg-input border border-border rounded-lg px-4 py-2 text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  required
+                />
+                <p className="text-sm text-muted-foreground mt-2">
+                  💡 Enter the wallet address where you want to receive payment for this task
+                </p>
+              </div>
+
+              {/* Notes */}
+              <div className="mt-6">
                 <label className="block text-sm font-medium mb-2">Additional Notes (Optional)</label>
                 <textarea
                   placeholder="Add any notes or context about your submission..."

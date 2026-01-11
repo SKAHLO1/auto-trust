@@ -6,8 +6,23 @@ class MNEEService {
   private hdWallet: ReturnType<Mnee['HDWallet']> | null = null;
 
   constructor() {
-    const environment = (process.env.MNEE_ENVIRONMENT || 'production') as 'production' | 'sandbox';
+    const envValue = process.env.MNEE_ENVIRONMENT;
+    console.log('Raw MNEE_ENVIRONMENT value:', envValue);
+    
+    // Validate and normalize environment value
+    let environment: 'production' | 'sandbox' = 'production';
+    
+    if (envValue) {
+      const normalized = envValue.trim().toLowerCase();
+      if (normalized === 'production' || normalized === 'sandbox') {
+        environment = normalized as 'production' | 'sandbox';
+      } else {
+        console.warn(`Invalid MNEE_ENVIRONMENT value: "${envValue}". Using "production" as default.`);
+      }
+    }
+    
     const apiKey = process.env.MNEE_API_KEY;
+    console.log('MNEE API Key exists:', !!apiKey);
 
     this.mnee = new Mnee({
       environment,

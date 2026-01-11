@@ -10,18 +10,35 @@ const router = express.Router();
 router.post('/', async (req: Request, res: Response) => {
   try {
     const { submissionId, autoRelease = true } = req.body;
+    
+    console.log('Starting verification for submission:', submissionId);
+
+    if (!submissionId) {
+      return res.status(400).json({ error: 'submissionId is required' });
+    }
 
     const submissionDoc = await db.collection('submissions').doc(submissionId).get();
     if (!submissionDoc.exists) {
+      console.error('Submission not found:', submissionId);
       return res.status(404).json({ error: 'Submission not found' });
     }
 
     const submission = submissionDoc.data() as Submission;
+    console.log('Found submission:', submission.id, 'for task:', submission.taskId);
+    
     const taskDoc = await db.collection('tasks').doc(submission.taskId).get();
+    if (!taskDoc.exists) {
+      console.error('Task not found:', submission.taskId);
+      return res.status(404).json({ error: 'Task not found' });
+    }
+    
     const task = taskDoc.data() as Task;
+    console.log('Found task:', task.id, task.title);
 
     // Run AI verification
+    console.log('Running AI verification...');
     const verificationResult = await generateVerification(submission, task);
+    console.log('Verification complete:', verificationResult.verdict);
 
     // Update submission with verification result
     await db.collection('submissions').doc(submissionId).update({
