@@ -41,6 +41,9 @@ export default function SignUpPage() {
       toast.error(error)
       setLoading(false)
     } else if (user) {
+      // Save userId to localStorage for dashboard redirect
+      localStorage.setItem('userId', user.uid)
+      
       // Create user profile with role
       try {
         await createUserProfile(
@@ -72,6 +75,9 @@ export default function SignUpPage() {
       toast.error(error)
       setLoading(false)
     } else if (user) {
+      // Save userId to localStorage for dashboard redirect
+      localStorage.setItem('userId', user.uid)
+      
       // Create user profile with selected role
       try {
         await createUserProfile(
@@ -90,13 +96,25 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <Card className="bg-card border-border p-8 w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center px-4 py-12 relative overflow-hidden">
+      {/* Background effects */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 -right-48 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/4 -left-48 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse" style={{animationDelay: '1s'}}></div>
+      </div>
+
+      <Card className="relative bg-slate-900/80 border-slate-700 backdrop-blur-xl p-8 w-full max-w-md shadow-2xl">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">
-            <span className="text-primary">Auto</span>Trust
-          </h1>
-          <p className="text-muted-foreground">Create your account</p>
+          <div className="inline-flex items-center justify-center gap-2 mb-4">
+            <div className="w-10 h-10 bg-gradient-to-br from-primary to-purple-500 rounded-lg flex items-center justify-center">
+              <span className="text-white text-xl font-bold">A</span>
+            </div>
+            <h1 className="text-3xl font-bold">
+              <span className="bg-gradient-to-r from-primary via-purple-400 to-blue-400 bg-clip-text text-transparent">Auto</span>
+              <span className="text-white">Trust</span>
+            </h1>
+          </div>
+          <p className="text-slate-400">Create your account</p>
         </div>
 
         {/* Google Sign In */}
@@ -104,7 +122,7 @@ export default function SignUpPage() {
           onClick={handleGoogleSignIn}
           disabled={loading}
           variant="outline"
-          className="w-full border-border bg-transparent hover:bg-card mb-4"
+          className="w-full border-slate-700 bg-slate-800/50 hover:bg-slate-800 hover:border-primary/50 text-white mb-4 backdrop-blur-sm transition-all"
         >
           <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
             <path
@@ -129,94 +147,94 @@ export default function SignUpPage() {
 
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-border"></div>
+            <div className="w-full border-t border-slate-700"></div>
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-card text-muted-foreground">Or continue with email</span>
+            <span className="px-2 bg-slate-900/80 text-slate-400">Or continue with email</span>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* User Role Selection */}
           <div>
-            <label className="block text-sm font-medium mb-2">I am a...</label>
+            <label className="block text-sm font-medium mb-3 text-slate-300">I am a...</label>
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, role: "developer" })}
-                className={`p-4 rounded-lg border-2 transition ${
+                className={`p-4 rounded-xl border-2 transition-all ${
                   formData.role === "developer"
-                    ? "border-primary bg-primary/10"
-                    : "border-border hover:border-primary/50"
+                    ? "border-primary bg-primary/20 shadow-lg shadow-primary/20"
+                    : "border-slate-700 bg-slate-800/30 hover:border-primary/50 hover:bg-slate-800/50"
                 }`}
               >
-                <div className="font-semibold">Developer</div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  I complete tasks and earn MNEE
+                <div className="font-semibold text-white text-base mb-1">🧑‍💻 Developer</div>
+                <div className="text-xs text-slate-400">
+                  Complete tasks & earn MNEE
                 </div>
               </button>
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, role: "employer" })}
-                className={`p-4 rounded-lg border-2 transition ${
+                className={`p-4 rounded-xl border-2 transition-all ${
                   formData.role === "employer"
-                    ? "border-primary bg-primary/10"
-                    : "border-border hover:border-primary/50"
+                    ? "border-primary bg-primary/20 shadow-lg shadow-primary/20"
+                    : "border-slate-700 bg-slate-800/30 hover:border-primary/50 hover:bg-slate-800/50"
                 }`}
               >
-                <div className="font-semibold">Employer</div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  I post tasks and hire developers
+                <div className="font-semibold text-white text-base mb-1">💼 Employer</div>
+                <div className="text-xs text-slate-400">
+                  Post tasks & hire talent
                 </div>
               </button>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Display Name</label>
+            <label className="block text-sm font-medium mb-2 text-slate-300">Display Name</label>
             <input
               type="text"
               value={formData.displayName}
               onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
-              className="w-full bg-input border border-border rounded-lg px-4 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full bg-slate-800/50 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
               placeholder="John Doe"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Email</label>
+            <label className="block text-sm font-medium mb-2 text-slate-300">Email</label>
             <input
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               required
-              className="w-full bg-input border border-border rounded-lg px-4 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full bg-slate-800/50 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
               placeholder="your@email.com"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Password</label>
+            <label className="block text-sm font-medium mb-2 text-slate-300">Password</label>
             <input
               type="password"
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               required
               minLength={6}
-              className="w-full bg-input border border-border rounded-lg px-4 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full bg-slate-800/50 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
               placeholder="••••••••"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Confirm Password</label>
+            <label className="block text-sm font-medium mb-2 text-slate-300">Confirm Password</label>
             <input
               type="password"
               value={formData.confirmPassword}
               onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
               required
               minLength={6}
-              className="w-full bg-input border border-border rounded-lg px-4 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full bg-slate-800/50 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
               placeholder="••••••••"
             />
           </div>
@@ -224,16 +242,28 @@ export default function SignUpPage() {
           <Button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+            className="w-full bg-gradient-to-r from-primary to-purple-500 text-white hover:shadow-lg hover:shadow-primary/50 hover:scale-[1.02] transition-all"
           >
-            {loading ? "Creating account..." : "Sign Up"}
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Creating account...
+              </span>
+            ) : "Sign Up"}
           </Button>
         </form>
 
-        <div className="mt-6 text-center text-sm text-muted-foreground">
+        <div className="mt-6 text-center text-sm text-slate-400">
           Already have an account?{" "}
-          <Link href="/auth/login" className="text-primary hover:underline">
+          <Link href="/auth/login" className="text-primary hover:text-purple-400 font-medium transition-colors">
             Sign in
+          </Link>
+        </div>
+        
+        {/* Back to home */}
+        <div className="mt-4 text-center">
+          <Link href="/" className="text-sm text-slate-500 hover:text-slate-400 transition-colors">
+            ← Back to home
           </Link>
         </div>
       </Card>
