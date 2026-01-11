@@ -17,7 +17,6 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files
-.env*
 
 # vercel
 .vercel
@@ -35,3 +34,4 @@ firestore.rules
 storage.rules
 TASK_CREATION_FIX.md
 PAYMENT_RELEASE_FLOW.md
+config.bat
