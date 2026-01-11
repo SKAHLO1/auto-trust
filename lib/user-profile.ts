@@ -20,6 +20,8 @@ export async function createUserProfile(
   role: UserRole,
   displayName?: string
 ): Promise<void> {
+  console.log('createUserProfile: Creating profile for', uid, 'with role', role)
+  
   const userProfile: UserProfile = {
     uid,
     email,
@@ -29,7 +31,15 @@ export async function createUserProfile(
     updatedAt: new Date().toISOString(),
   }
 
-  await setDoc(doc(db, 'users', uid), userProfile)
+  console.log('createUserProfile: Profile data:', userProfile)
+  
+  try {
+    await setDoc(doc(db, 'users', uid), userProfile)
+    console.log('createUserProfile: Profile created successfully')
+  } catch (error) {
+    console.error('createUserProfile: Error creating profile:', error)
+    throw error
+  }
 }
 
 // Get user profile

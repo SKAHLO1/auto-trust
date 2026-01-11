@@ -40,27 +40,40 @@ export default function SignUpPage() {
     if (error) {
       toast.error(error)
       setLoading(false)
-    } else if (user) {
+      return
+    }
+    
+    if (user) {
       // Create user profile with role
       try {
+        console.log('Signup: Creating profile for user', user.uid)
         await createUserProfile(
           user.uid,
           formData.email,
           formData.role,
           formData.displayName || undefined
         )
-      } catch (profileError) {
-        console.error("Failed to create user profile:", profileError)
+        console.log('Signup: Profile created successfully')
+        
+        // Send verification email
+        const { error: verifyError } = await sendVerificationEmail()
+        if (!verifyError) {
+          toast.success("Account created! Check your email to verify your account.")
+        } else {
+          toast.success("Account created! Welcome to AutoTrust")
+        }
+        
+        // Small delay to ensure Firestore write is complete
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
+        router.push("/dashboard")
+      } catch (profileError: any) {
+        console.error("Signup: Failed to create user profile:", profileError)
+        toast.error(`Failed to create profile: ${profileError.message || 'Unknown error'}`)
+        setLoading(false)
       }
-
-      // Send verification email
-      const { error: verifyError } = await sendVerificationEmail()
-      if (!verifyError) {
-        toast.success("Account created! Check your email to verify your account.")
-      } else {
-        toast.success("Account created! Welcome to AutoTrust")
-      }
-      router.push("/dashboard")
+    } else {
+      setLoading(false)
     }
   }
 
@@ -71,21 +84,34 @@ export default function SignUpPage() {
     if (error) {
       toast.error(error)
       setLoading(false)
-    } else if (user) {
+      return
+    }
+    
+    if (user) {
       // Create user profile with selected role
       try {
+        console.log('Google Sign-in: Creating profile for user', user.uid)
         await createUserProfile(
           user.uid,
           user.email || '',
           formData.role,
           user.displayName || undefined
         )
-      } catch (profileError) {
-        console.error("Failed to create user profile:", profileError)
+        console.log('Google Sign-in: Profile created successfully')
+        
+        toast.success("Welcome to AutoTrust!")
+        
+        // Small delay to ensure Firestore write is complete
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
+        router.push("/dashboard")
+      } catch (profileError: any) {
+        console.error("Google Sign-in: Failed to create user profile:", profileError)
+        toast.error(`Failed to create profile: ${profileError.message || 'Unknown error'}`)
+        setLoading(false)
       }
-      
-      toast.success("Welcome to AutoTrust!")
-      router.push("/dashboard")
+    } else {
+      setLoading(false)
     }
   }
 
