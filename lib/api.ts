@@ -32,7 +32,12 @@ export const api = {
             headers: createHeaders(),
             body: JSON.stringify(taskData),
         });
-        if (!res.ok) throw new Error("Failed to create task");
+        if (!res.ok) {
+            const errorData = await res.json().catch(() => ({}));
+            const errorMessage = errorData.error || errorData.message || "Failed to create task";
+            console.error("Task creation failed:", errorData);
+            throw new Error(errorMessage);
+        }
         return res.json();
     },
 

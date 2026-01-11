@@ -17,7 +17,28 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const { title, description, milestones, totalBudget, verificationCriteria, mneeWalletAddress } = req.body;
+    const { 
+      title, 
+      description, 
+      milestones, 
+      totalBudget, 
+      verificationCriteria, 
+      mneeWalletAddress,
+      paymentMethod,
+      deliverableType,
+      status,
+      deadline
+    } = req.body;
+
+    // Handle verificationCriteria - accept string or object
+    let processedVerificationCriteria = verificationCriteria;
+    if (typeof verificationCriteria === 'string') {
+      processedVerificationCriteria = {
+        requirements: verificationCriteria.split('\n').filter((r: string) => r.trim()),
+        qualityThreshold: 0.8,
+        additionalNotes: verificationCriteria
+      };
+    }
 
     const taskRef = db.collection('tasks').doc();
     const taskData: Task = {
@@ -27,10 +48,13 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
       description,
       milestones,
       totalBudget,
-      verificationCriteria,
-      status: 'active',
+      verificationCriteria: processedVerificationCriteria,
+      status: status || 'active',
       escrowAmount: totalBudget,
       escrowStatus: 'pending',
+      paymentMethod: paymentMethod || 'MNEE',
+      deliverableType: deliverableType || 'code',
+      deadline,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       mneeWalletAddress,
@@ -39,7 +63,12 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
     await taskRef.set(taskData);
     res.status(201).json(taskData);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error('Error creating task:', error);
+    console.error('Request body:', req.body);
+    res.status(500).json({ 
+      error: error.message,
+      details: error.stack
+    });
   }
 });
 
