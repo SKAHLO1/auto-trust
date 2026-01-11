@@ -32,7 +32,15 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
 
     // Handle verificationCriteria - accept string or object
     let processedVerificationCriteria = verificationCriteria;
-    if (typeof verificationCriteria === 'string') {
+    
+    if (!verificationCriteria) {
+      // Provide default if not specified
+      processedVerificationCriteria = {
+        requirements: ['Task requirements not specified'],
+        qualityThreshold: 0.8,
+        additionalNotes: 'No verification criteria provided'
+      };
+    } else if (typeof verificationCriteria === 'string') {
       processedVerificationCriteria = {
         requirements: verificationCriteria.split('\n').filter((r: string) => r.trim()),
         qualityThreshold: 0.8,
@@ -62,7 +70,15 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
     if (deadline) taskData.deadline = deadline;
     if (mneeWalletAddress) taskData.mneeWalletAddress = mneeWalletAddress;
 
+    console.log('Creating task with ID:', taskRef.id);
+    console.log('Task data:', { ...taskData, milestones: `[${taskData.milestones?.length} milestones]` });
+    
     await taskRef.set(taskData);
+    
+    // Verify task was saved
+    const savedDoc = await taskRef.get();
+    console.log('Task saved successfully:', savedDoc.exists ? 'YES' : 'NO');
+    
     res.status(201).json(taskData);
   } catch (error: any) {
     console.error('Error creating task:', error);
@@ -88,12 +104,29 @@ router.get('/', async (req: Request, res: Response) => {
 // Get a specific task
 router.get('/:id', async (req: Request, res: Response) => {
   try {
-    const doc = await db.collection('tasks').doc(req.params.id).get();
+    const taskId = req.params.id;
+    console.log('Fetching task with ID:', taskId);
+    
+    const doc = await db.collection('tasks').doc(taskId).get();
+    
     if (!doc.exists) {
-      return res.status(404).json({ error: 'Task not found' });
+      console.log('Task not found in Firestore:', taskId);
+      
+      // Debug: List all tasks to see what IDs exist
+      const allTasks = await db.collection('tasks').limit(10).get();
+      console.log('Available task IDs:', allTasks.docs.map(d => d.id));
+      
+      return res.status(404).json({ 
+        error: 'Task not found',
+        taskId: taskId,
+        availableTasksCount: allTasks.size
+      });
     }
+    
+    console.log('Task found:', doc.id);
     res.json(doc.data());
   } catch (error: any) {
+    console.error('Error fetching task:', error);
     res.status(500).json({ error: error.message });
   }
 });

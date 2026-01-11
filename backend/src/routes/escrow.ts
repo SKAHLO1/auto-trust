@@ -76,7 +76,17 @@ router.post('/deposit', async (req: AuthenticatedRequest, res: Response) => {
     
     if (txId) taskUpdate.mneeTransactionId = txId;
 
+    console.log('Updating task:', taskId, 'with escrow data');
+    
+    // Check if task exists before updating
+    const taskDoc = await db.collection('tasks').doc(taskId).get();
+    if (!taskDoc.exists) {
+      console.error('Task not found when trying to update escrow status:', taskId);
+      throw new Error('Task not found for escrow update');
+    }
+    
     await db.collection('tasks').doc(taskId).update(taskUpdate);
+    console.log('Task updated successfully with escrow status');
 
     res.status(201).json({
       escrow: escrowData,
