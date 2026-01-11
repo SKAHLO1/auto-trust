@@ -28,4 +28,10 @@ try {
   console.error('Attempted path:', serviceAccountPath);
 }
 
-export const db = admin.firestore();
+// Configure Firestore settings
+const db = admin.firestore();
+db.settings({
+  ignoreUndefinedProperties: true
+});
+
+export { db };
