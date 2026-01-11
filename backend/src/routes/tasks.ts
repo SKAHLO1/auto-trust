@@ -41,7 +41,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
     }
 
     const taskRef = db.collection('tasks').doc();
-    const taskData: Task = {
+    const taskData: any = {
       id: taskRef.id,
       creatorId: userId,
       title,
@@ -54,11 +54,13 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
       escrowStatus: 'pending',
       paymentMethod: paymentMethod || 'MNEE',
       deliverableType: deliverableType || 'code',
-      deadline,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      mneeWalletAddress,
     };
+
+    // Add optional fields only if they have values
+    if (deadline) taskData.deadline = deadline;
+    if (mneeWalletAddress) taskData.mneeWalletAddress = mneeWalletAddress;
 
     await taskRef.set(taskData);
     res.status(201).json(taskData);
