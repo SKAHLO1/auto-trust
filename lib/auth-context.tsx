@@ -20,18 +20,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    console.log('AuthContext: Initializing auth listener')
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.log('AuthContext: Auth state changed, user:', user?.uid)
       setUser(user)
       // Sync userId with localStorage for compatibility
       if (user) {
         localStorage.setItem('userId', user.uid)
+        console.log('AuthContext: User logged in, userId saved to localStorage')
       } else {
         localStorage.removeItem('userId')
+        console.log('AuthContext: User logged out, userId removed from localStorage')
       }
       setLoading(false)
     })
 
-    return () => unsubscribe()
+    return () => {
+      console.log('AuthContext: Cleaning up auth listener')
+      unsubscribe()
+    }
   }, [])
 
   return (
@@ -43,8 +50,5 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
   return context
 }
