@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import { db } from '../db';
 import { Escrow, Submission, Task, AuthenticatedRequest } from '../types';
 import mneeService from '../services/mnee.service';
+import ethereumService from '../services/ethereum.service';
 
 const router = express.Router();
 
@@ -17,12 +18,14 @@ router.post('/deposit', async (req: AuthenticatedRequest, res: Response) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const { taskId, amount, senderAddress, escrowAddress, senderPrivateKey, transactionHash } = req.body;
+    const { taskId, amount, senderAddress, escrowAddress, senderPrivateKey, transactionHash, paymentMethod } = req.body;
 
     // Validate basic required fields
     if (!taskId || !amount) {
       return res.status(400).json({ error: 'Missing required fields: taskId and amount' });
     }
+
+    console.log('Escrow deposit request:', { taskId, amount, paymentMethod, hasTransactionHash: !!transactionHash });
 
     let result: any = {};
     let txId = transactionHash;
@@ -54,6 +57,7 @@ router.post('/deposit', async (req: AuthenticatedRequest, res: Response) => {
       taskId,
       depositorId: userId,
       amount,
+      paymentMethod: paymentMethod || 'MNEE', // Default to MNEE if not specified
       status: 'locked',
       deposittedAt: new Date().toISOString(),
       releasedAt: null,
@@ -64,6 +68,7 @@ router.post('/deposit', async (req: AuthenticatedRequest, res: Response) => {
     if (result.ticketId) escrowData.mneeTicketId = result.ticketId;
     if (senderAddress) escrowData.senderAddress = senderAddress;
 
+    console.log('Creating escrow with payment method:', escrowData.paymentMethod);
     await escrowRef.set(escrowData);
 
     // Update task escrow status
@@ -103,10 +108,18 @@ router.post('/deposit', async (req: AuthenticatedRequest, res: Response) => {
 // Release payment from escrow
 router.post('/release', async (req: Request, res: Response) => {
   try {
-    const { submissionId, escrowPrivateKey } = req.body;
+    const { submissionId } = req.body;
 
-    if (!submissionId || !escrowPrivateKey) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    console.log('Releasing payment for submission:', submissionId);
+
+    if (!submissionId) {
+      return res.status(400).json({ error: 'submissionId is required' });
+    }
+
+    // Use escrow private key from environment variable for security
+    const escrowPrivateKey = process.env.ESCROW_PRIVATE_KEY;
+    if (!escrowPrivateKey) {
+      return res.status(500).json({ error: 'Escrow private key not configured on server' });
     }
 
     const submissionDoc = await db.collection('submissions').doc(submissionId).get();
@@ -115,64 +128,137 @@ router.post('/release', async (req: Request, res: Response) => {
     }
 
     const submission = submissionDoc.data() as Submission;
+    console.log('Found submission for task:', submission.taskId);
+    
     const taskDoc = await db.collection('tasks').doc(submission.taskId).get();
+    if (!taskDoc.exists) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+    
     const task = taskDoc.data() as Task;
+
+    // Check if submission is approved
+    if (submission.status !== 'approved') {
+      return res.status(400).json({ error: 'Submission must be approved before releasing payment' });
+    }
 
     const escrowSnapshot = await db
       .collection('escrows')
       .where('taskId', '==', submission.taskId)
+      .where('status', '==', 'locked')
       .limit(1)
       .get();
 
     if (escrowSnapshot.empty) {
-      return res.status(404).json({ error: 'Escrow not found' });
+      return res.status(404).json({ error: 'No locked escrow found for this task' });
     }
 
     const escrowDoc = escrowSnapshot.docs[0];
     const escrow = escrowDoc.data() as Escrow;
 
-    // Check if escrow is in locked status
-    if (escrow.status !== 'locked') {
-      return res.status(400).json({ error: 'Escrow is not in locked status' });
-    }
-
-    // Get recipient address (submitter's MNEE address)
-    // You should store this in the submission or user profile
-    const recipientAddress = req.body.recipientAddress;
+    // Get recipient address from submission data (first priority) or task's mneeWalletAddress (fallback)
+    const recipientAddress = submission.data?.walletAddress || task.mneeWalletAddress || escrow.recipientAddress;
     if (!recipientAddress) {
-      return res.status(400).json({ error: 'Recipient address required' });
+      return res.status(400).json({ error: 'Recipient wallet address not found. Developer must provide wallet address in submission.' });
     }
 
-    // Release payment via MNEE
-    const callbackUrl = process.env.WEBHOOK_CALLBACK_URL;
-    const result = await mneeService.releaseEscrowPayment(
-      escrowPrivateKey,
-      task.totalBudget,
-      recipientAddress,
-      callbackUrl
-    );
+    console.log('Recipient wallet address:', recipientAddress);
+
+    const paymentMethod = task.paymentMethod || escrow.paymentMethod || 'MNEE';
+    console.log('Releasing', escrow.amount, paymentMethod, 'to', recipientAddress);
+
+    let result: any = { success: true };
+
+    // Handle payment release based on payment method
+    if (paymentMethod === 'ETH') {
+      // ETH payment - call smart contract
+      console.log('🔷 ETH payment - calling smart contract release');
+      
+      if (!ethereumService.isReady()) {
+        return res.status(500).json({ 
+          error: 'Ethereum service not initialized. Check backend logs and environment variables (ETH_RPC_URL, ETH_ADMIN_PRIVATE_KEY, ESCROW_CONTRACT_ADDRESS)' 
+        });
+      }
+      
+      result = await ethereumService.releaseEscrowPayment(
+        submission.taskId,
+        recipientAddress
+      );
+      
+      if (!result.success) {
+        console.error('❌ Smart contract release failed:', result.error);
+        return res.status(500).json({ 
+          error: result.error || 'Smart contract release failed',
+          details: 'Check backend logs for more information'
+        });
+      }
+      
+      console.log('✅ ETH released via smart contract. TX:', result.txHash);
+      
+    } else {
+      // MNEE payment release
+      console.log('MNEE payment - calling MNEE service');
+      const callbackUrl = process.env.WEBHOOK_CALLBACK_URL;
+      
+      try {
+        result = await mneeService.releaseEscrowPayment(
+          escrowPrivateKey,
+          escrow.amount,
+          recipientAddress,
+          callbackUrl
+        );
+      } catch (mneeError: any) {
+        console.error('MNEE release error:', mneeError);
+        throw new Error(`MNEE payment release failed: ${mneeError.message}`);
+      }
+    }
 
     // Update escrow status
     const escrowUpdate: any = {
       status: 'released',
       releasedAt: new Date().toISOString(),
       recipientAddress,
+      paymentMethod,
     };
-    if (result.txId) escrowUpdate.mneeTransactionId = result.txId;
+    
+    // Add transaction ID (ETH uses txHash, MNEE uses txId)
+    if (paymentMethod === 'ETH' && result.txHash) {
+      escrowUpdate.ethTransactionHash = result.txHash;
+      escrowUpdate.mneeTransactionId = result.txHash; // For compatibility
+    } else if (result.txId) {
+      escrowUpdate.mneeTransactionId = result.txId;
+    }
     
     await db.collection('escrows').doc(escrowDoc.id).update(escrowUpdate);
+    console.log('Escrow updated to released');
 
-    // Update task status
+    // Update task status to completed
     await db.collection('tasks').doc(submission.taskId).update({
       status: 'completed',
       escrowStatus: 'released',
+      updatedAt: new Date().toISOString(),
     });
+    console.log('Task marked as completed');
 
-    res.json({
+    const response: any = {
       success: true,
       transaction: result,
-      message: 'Payment released successfully',
-    });
+      message: result.manual 
+        ? 'Payment marked as released (manual transfer required)' 
+        : 'Payment released successfully',
+      taskId: submission.taskId,
+      amount: escrow.amount,
+      paymentMethod,
+    };
+
+    // Add manual release instructions if applicable
+    if (result.manual) {
+      response.manual = true;
+      response.instructions = result.message || `Please transfer ${escrow.amount} ${paymentMethod} to ${recipientAddress}`;
+      response.recipientAddress = recipientAddress;
+    }
+
+    res.json(response);
   } catch (error: any) {
     console.error('Payment release error:', error);
     res.status(500).json({ error: error.message });

@@ -42,10 +42,16 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const { taskId, submissionLink, notes, deliverableType, submissionType, submissionData } = req.body;
+    const { taskId, submissionLink, notes, deliverableType, submissionType, submissionData, walletAddress } = req.body;
+
+    console.log('Creating submission:', { taskId, submissionLink, walletAddress, deliverableType });
 
     if (!taskId) {
       return res.status(400).json({ error: 'taskId is required' });
+    }
+
+    if (!walletAddress) {
+      return res.status(400).json({ error: 'walletAddress is required to receive payment' });
     }
 
     // Support both old (submissionType/submissionData) and new (submissionLink/notes/deliverableType) formats
@@ -54,6 +60,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
       submissionLink: submissionLink || '',
       notes: notes || '',
       deliverableType: type,
+      walletAddress: walletAddress || '',
     };
 
     const submissionRef = db.collection('submissions').doc();
@@ -71,12 +78,15 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
     };
 
     await submissionRef.set(submissionDoc);
+    console.log('Submission saved:', submissionRef.id);
+    console.log('Submission data:', JSON.stringify(submissionDoc.data, null, 2));
 
     // Update task status to 'submitted'
     await db.collection('tasks').doc(taskId).update({
       status: 'submitted',
       updatedAt: new Date().toISOString(),
     });
+    console.log('Task status updated to: submitted');
 
     res.status(201).json(submissionDoc);
   } catch (error: any) {
@@ -88,14 +98,20 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
 // Get submissions for a task
 router.get('/task/:taskId', async (req: Request, res: Response) => {
   try {
+    const taskId = req.params.taskId;
+    console.log('Fetching submissions for task:', taskId);
+    
     const snapshot = await db
       .collection('submissions')
-      .where('taskId', '==', req.params.taskId)
+      .where('taskId', '==', taskId)
       .get();
 
     const submissions = snapshot.docs.map((doc) => doc.data());
+    console.log(`Found ${submissions.length} submissions for task ${taskId}`);
+    
     res.json(submissions);
   } catch (error: any) {
+    console.error('Error fetching submissions:', error);
     res.status(500).json({ error: error.message });
   }
 });

@@ -62,6 +62,7 @@ export interface Submission {
 export interface VerificationResult {
   verdict: 'passed' | 'failed';
   score: number;
+  summary?: string;
   feedback: string;
   details: string[];
   analyzedAt: string;
@@ -73,6 +74,7 @@ export interface Escrow {
   taskId: string;
   depositorId: string;
   amount: number;
+  paymentMethod?: 'MNEE' | 'ETH';
   status: 'locked' | 'released' | 'refunded';
   mneeTransactionId?: string;
   mneeTicketId?: string;

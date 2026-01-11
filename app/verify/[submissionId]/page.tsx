@@ -1,17 +1,20 @@
 "use client"
 
-import { useState } from "react"
+import { useState, use } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { CheckCircle, AlertCircle, Loader } from "lucide-react"
 
 type VerificationStatus = "analyzing" | "passed" | "failed"
 
-export default function VerificationPage({ params }: { params: { submissionId: string } }) {
+export default function VerificationPage({ params }: { params: Promise<{ submissionId: string }> }) {
+  // Unwrap the params Promise (Next.js 15+ requirement)
+  const { submissionId } = use(params)
+  
   const [status, setStatus] = useState<VerificationStatus>("analyzing")
 
   const submission = {
-    id: params.submissionId,
+    id: submissionId,
     title: "Build REST API with Authentication",
     workerName: "Alex Developer",
     submittedLink: "https://github.com/worker/api-repo",
