@@ -1,11 +1,16 @@
 import type React from "react"
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
-import { Analytics } from "@vercel/analytics/next"
+import { Inter } from "next/font/google"
 import "./globals.css"
+import { Toaster } from "@/components/ui/sonner"
+import { WalletProvider } from "@/lib/wallet-context"
+import { ConnectWalletModal } from "@/components/connect-wallet-modal"
+import { Analytics } from "@vercel/analytics/next"
 
 const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
+const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "AutoTrust - Programmable Trust for Work",
@@ -38,8 +43,12 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`font-sans antialiased`}>
-        {children}
-        <Analytics />
+        <WalletProvider>
+          {children}
+          <ConnectWalletModal />
+          <Toaster />
+          <Analytics />
+        </WalletProvider>
       </body>
     </html>
   )
