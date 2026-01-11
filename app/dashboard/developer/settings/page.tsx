@@ -6,13 +6,14 @@ import { Card } from "@/components/ui/card"
 import { Save, User, Briefcase, Wallet, ArrowLeft } from "lucide-react"
 import { toast } from "sonner"
 import { useWallet } from "@/lib/wallet-context"
+import { WalletConnectButton } from "@/components/wallet-connect-button"
 import { getUserProfile, updateUserProfile } from "@/lib/user-profile"
 import Link from "next/link"
 
 export default function DeveloperSettings() {
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
-  const { isConnected, walletAddress, connectWallet, disconnectWallet } = useWallet()
+  const { isConnected, walletAddress, disconnectWallet } = useWallet()
   const [formData, setFormData] = useState({
     displayName: "",
     bio: "",
@@ -142,15 +143,9 @@ export default function DeveloperSettings() {
               ) : (
                 <div className="space-y-3">
                   <p className="text-muted-foreground text-sm">
-                    Connect your MNEE wallet to receive payments for completed tasks
+                    Connect your wallet to receive payments for completed tasks (MNEE or Sepolia ETH)
                   </p>
-                  <Button 
-                    onClick={connectWallet}
-                    className="bg-primary text-primary-foreground hover:bg-primary/90 w-full"
-                  >
-                    <Wallet className="w-4 h-4 mr-2" />
-                    Connect Wallet
-                  </Button>
+                  <WalletConnectButton className="bg-primary text-primary-foreground hover:bg-primary/90 w-full" />
                 </div>
               )}
             </Card>

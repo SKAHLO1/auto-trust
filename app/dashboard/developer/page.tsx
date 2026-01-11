@@ -3,10 +3,13 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Briefcase, Clock, DollarSign, Settings, Wallet, TrendingUp, Filter } from "lucide-react"
+import { Briefcase, Clock, DollarSign, Settings, Wallet, TrendingUp, Filter, LogOut } from "lucide-react"
 import { api } from "@/lib/api"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useWallet } from "@/lib/wallet-context"
+import { signOut } from "@/lib/firebase-auth"
+import { WalletConnectButton } from "@/components/wallet-connect-button"
 import { toast } from "sonner"
 
 interface Task {
@@ -21,15 +24,26 @@ interface Task {
 }
 
 export default function DeveloperDashboard() {
+  const router = useRouter()
   const [tasks, setTasks] = useState<Task[]>([])
   const [mySubmissions, setMySubmissions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'recent' | 'high-paying'>('all')
-  const { isConnected, walletAddress, connectWallet } = useWallet()
+  const { isConnected } = useWallet()
 
   useEffect(() => {
     fetchData()
   }, [])
+
+  const handleLogout = async () => {
+    const { error } = await signOut()
+    if (error) {
+      toast.error("Failed to log out")
+    } else {
+      toast.success("Logged out successfully")
+      router.push("/")
+    }
+  }
 
   const fetchData = async () => {
     try {
@@ -113,26 +127,21 @@ export default function DeveloperDashboard() {
               <p className="text-muted-foreground">Find tasks and start earning MNEE</p>
             </div>
             <div className="flex gap-3">
-              {!isConnected ? (
-                <Button 
-                  onClick={connectWallet}
-                  className="bg-primary text-primary-foreground hover:bg-primary/90"
-                >
-                  <Wallet className="w-4 h-4 mr-2" />
-                  Connect Wallet
-                </Button>
-              ) : (
-                <div className="px-4 py-2 bg-green-500/20 text-green-400 rounded-lg text-sm font-medium">
-                  <Wallet className="w-4 h-4 inline mr-2" />
-                  Connected
-                </div>
-              )}
+              <WalletConnectButton className="bg-primary text-primary-foreground hover:bg-primary/90" />
               <Link href="/dashboard/developer/settings">
                 <Button variant="outline">
                   <Settings className="w-4 h-4 mr-2" />
                   Settings
                 </Button>
               </Link>
+              <Button 
+                variant="outline" 
+                onClick={handleLogout}
+                className="border-red-500/50 text-red-400 hover:bg-red-500/10"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Logout
+              </Button>
             </div>
           </div>
         </div>
@@ -166,16 +175,10 @@ export default function DeveloperDashboard() {
               <div>
                 <p className="font-semibold text-yellow-400">Connect your wallet</p>
                 <p className="text-sm text-muted-foreground">
-                  You need to connect your MNEE wallet to submit work and receive payments
+                  Connect your wallet to submit work and receive payments (MNEE or Sepolia ETH)
                 </p>
               </div>
-              <Button 
-                onClick={connectWallet}
-                size="sm"
-                className="ml-auto"
-              >
-                Connect Now
-              </Button>
+              <WalletConnectButton className="ml-auto" />
             </div>
           </Card>
         )}
