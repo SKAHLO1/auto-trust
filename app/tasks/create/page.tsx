@@ -4,7 +4,8 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { ArrowRight, Loader, Wallet } from "lucide-react"
-import { depositToEscrow, connectWallet } from "@/lib/web3"
+import { depositMNEEToEscrow, depositETHToEscrow } from "@/lib/web3"
+import { useWallet } from "@/lib/wallet-context"
 import { api } from "@/lib/api"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
@@ -13,13 +14,15 @@ type Step = "basic" | "milestones" | "verification" | "review"
 
 export default function CreateTaskPage() {
   const router = useRouter()
+  const { paymentMethod } = useWallet()
   const [step, setStep] = useState<Step>("basic")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     deliverableType: "code",
-    milestones: [{ name: "Milestone 1", description: "", amount: 0 }],
+    paymentMethod: paymentMethod || "MNEE" as 'MNEE' | 'ETH',
+    milestones: [{ name: "Milestone 1", description: "", amount: 0.001 }],
     verificationCriteria: "",
   })
 
@@ -30,7 +33,7 @@ export default function CreateTaskPage() {
   const addMilestone = () => {
     setFormData((prev) => ({
       ...prev,
-      milestones: [...prev.milestones, { name: "", description: "", amount: 0 }],
+      milestones: [...prev.milestones, { name: "", description: "", amount: 0.001 }],
     }))
   }
 
@@ -56,6 +59,20 @@ export default function CreateTaskPage() {
     try {
       setIsSubmitting(true)
 
+      // Validate minimum amounts
+      const invalidMilestones = formData.milestones.filter(m => m.amount < 0.001)
+      if (invalidMilestones.length > 0) {
+        toast.error("All milestone amounts must be at least 0.001")
+        setIsSubmitting(false)
+        return
+      }
+
+      if (totalAmount < 0.001) {
+        toast.error("Total amount must be at least 0.001")
+        setIsSubmitting(false)
+        return
+      }
+
       // 1. Generate a Task ID (or let backend do it, but we need it for deposit)
       // Ideally, backend creates task first with 'pending_deposit' status, returns ID
       // Then we deposit.
@@ -65,6 +82,7 @@ export default function CreateTaskPage() {
       const task = await api.createTask({
         ...formData,
         totalBudget: totalAmount,
+        paymentMethod: formData.paymentMethod,
         status: "pending_deposit"
       })
 
@@ -72,7 +90,11 @@ export default function CreateTaskPage() {
 
       // 2. Deposit to Escrow
       toast.info("Please confirm the transaction in your wallet...")
-      const txHash = await depositToEscrow(task.id, totalAmount)
+      const depositResult = formData.paymentMethod === 'ETH'
+        ? await depositETHToEscrow(task.id, totalAmount)
+        : await depositMNEEToEscrow(task.id, totalAmount)
+      
+      const txHash = depositResult.transactionHash
 
       toast.success("Deposit successful! Transaction: " + txHash.slice(0, 10) + "...")
 
@@ -170,6 +192,42 @@ export default function CreateTaskPage() {
                     </select>
                   </div>
 
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Payment Method</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => handleInputChange("paymentMethod", "MNEE")}
+                        className={`p-4 rounded-lg border-2 transition ${
+                          formData.paymentMethod === 'MNEE'
+                            ? 'border-purple-500 bg-purple-500/20'
+                            : 'border-border bg-card hover:border-purple-500/50'
+                        }`}
+                      >
+                        <div className="text-center">
+                          <div className="text-2xl mb-1">⚡</div>
+                          <div className="font-semibold">MNEE Tokens</div>
+                          <div className="text-xs text-muted-foreground mt-1">MNEE Blockchain</div>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleInputChange("paymentMethod", "ETH")}
+                        className={`p-4 rounded-lg border-2 transition ${
+                          formData.paymentMethod === 'ETH'
+                            ? 'border-blue-500 bg-blue-500/20'
+                            : 'border-border bg-card hover:border-blue-500/50'
+                        }`}
+                      >
+                        <div className="text-center">
+                          <div className="text-2xl mb-1">💎</div>
+                          <div className="font-semibold">Sepolia ETH</div>
+                          <div className="text-xs text-muted-foreground mt-1">Ethereum Testnet</div>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+
                   <Button
                     onClick={() => setStep("milestones")}
                     className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
@@ -213,16 +271,30 @@ export default function CreateTaskPage() {
                         ></textarea>
 
                         <div>
-                          <label className="block text-sm font-medium mb-2">Amount (MNEE)</label>
+                          <label className="block text-sm font-medium mb-2">
+                            Amount ({formData.paymentMethod === 'ETH' ? 'ETH' : 'MNEE'})
+                          </label>
                           <input
                             type="number"
-                            min="0"
-                            step="10"
-                            placeholder="0"
+                            min="0.001"
+                            step="0.001"
+                            placeholder="0.001"
                             value={milestone.amount || ""}
                             onChange={(e) => updateMilestone(i, "amount", Number.parseFloat(e.target.value) || 0)}
-                            className="w-full bg-input border border-border rounded-lg px-4 py-2 text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                            className={`w-full bg-input border rounded-lg px-4 py-2 text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 ${
+                              milestone.amount > 0 && milestone.amount < 0.001
+                                ? 'border-red-500 focus:ring-red-500'
+                                : 'border-border focus:ring-primary'
+                            }`}
                           />
+                          <p className={`text-xs mt-1 ${
+                            milestone.amount > 0 && milestone.amount < 0.001
+                              ? 'text-red-400'
+                              : 'text-muted-foreground'
+                          }`}>
+                            Minimum: 0.001 {formData.paymentMethod === 'ETH' ? 'ETH' : 'MNEE'}
+                            {milestone.amount > 0 && milestone.amount < 0.001 && ' ⚠️ Below minimum'}
+                          </p>
                         </div>
                       </div>
                     ))}
@@ -241,7 +313,14 @@ export default function CreateTaskPage() {
                       Back
                     </Button>
                     <Button
-                      onClick={() => setStep("verification")}
+                      onClick={() => {
+                        const invalidMilestones = formData.milestones.filter(m => m.amount < 0.001)
+                        if (invalidMilestones.length > 0) {
+                          toast.error("All milestone amounts must be at least 0.001")
+                          return
+                        }
+                        setStep("verification")
+                      }}
                       className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
                     >
                       Next <ArrowRight className="ml-2 w-4 h-4" />
@@ -302,8 +381,20 @@ export default function CreateTaskPage() {
                     </div>
 
                     <div>
+                      <p className="text-muted-foreground text-sm">Payment Method</p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">{formData.paymentMethod === 'ETH' ? '💎' : '⚡'}</span>
+                        <span className="font-semibold">{formData.paymentMethod === 'ETH' ? 'Sepolia ETH' : 'MNEE Tokens'}</span>
+                      </div>
+                    </div>
+
+                    <div>
                       <p className="text-muted-foreground text-sm">Total Amount</p>
-                      <p className="text-2xl font-bold text-primary">{totalAmount} MNEE</p>
+                      <p className={`text-2xl font-bold ${
+                        formData.paymentMethod === 'ETH' ? 'text-blue-400' : 'text-purple-400'
+                      }`}>
+                        {totalAmount} {formData.paymentMethod === 'ETH' ? 'ETH' : 'MNEE'}
+                      </p>
                     </div>
 
                     <div>
@@ -315,7 +406,9 @@ export default function CreateTaskPage() {
                             className="flex justify-between text-sm bg-card p-3 rounded-lg border border-border"
                           >
                             <span>{m.name || `Milestone ${i + 1}`}</span>
-                            <span className="font-semibold">{m.amount} MNEE</span>
+                            <span className="font-semibold">
+                              {m.amount} {formData.paymentMethod === 'ETH' ? 'ETH' : 'MNEE'}
+                            </span>
                           </div>
                         ))}
                       </div>
@@ -339,7 +432,7 @@ export default function CreateTaskPage() {
                       ) : (
                         <>
                           <Wallet className="w-4 h-4 mr-2" />
-                          Create Task & Deposit MNEE
+                          Create Task & Deposit {formData.paymentMethod}
                         </>
                       )}
                     </Button>
@@ -362,7 +455,11 @@ export default function CreateTaskPage() {
 
                 <div>
                   <p className="text-muted-foreground text-sm">Total Escrow</p>
-                  <p className="text-2xl font-bold text-primary">{totalAmount} MNEE</p>
+                  <p className={`text-2xl font-bold ${
+                    formData.paymentMethod === 'ETH' ? 'text-blue-400' : 'text-purple-400'
+                  }`}>
+                    {totalAmount} {formData.paymentMethod === 'ETH' ? 'ETH' : 'MNEE'}
+                  </p>
                 </div>
 
                 <div>

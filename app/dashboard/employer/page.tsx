@@ -20,6 +20,7 @@ interface Task {
   deadline?: string
   createdAt: string
   escrowStatus?: string
+  paymentMethod?: 'MNEE' | 'ETH'
 }
 
 export default function EmployerDashboard() {
@@ -93,30 +94,35 @@ export default function EmployerDashboard() {
     }
   }
 
+  const mneeTasks = tasks.filter(t => !t.paymentMethod || t.paymentMethod === 'MNEE')
+  const ethTasks = tasks.filter(t => t.paymentMethod === 'ETH')
+  const mneeTotal = mneeTasks.reduce((sum, t) => sum + (t.totalBudget || 0), 0)
+  const ethTotal = ethTasks.reduce((sum, t) => sum + (t.totalBudget || 0), 0)
+
   const stats = [
     { 
-      label: "Total Escrow", 
-      value: `${tasks.reduce((sum, t) => sum + (t.totalBudget || 0), 0)} MNEE`, 
+      label: "Total Escrow (MNEE)", 
+      value: `${mneeTotal.toFixed(2)} MNEE`, 
       icon: DollarSign,
-      color: "text-primary" 
+      color: "text-purple-400" 
+    },
+    { 
+      label: "Total Escrow (ETH)", 
+      value: `${ethTotal.toFixed(4)} ETH`, 
+      icon: DollarSign,
+      color: "text-blue-400" 
     },
     { 
       label: "Active Tasks", 
       value: tasks.filter(t => t.status !== 'completed').length.toString(), 
       icon: AlertCircle,
-      color: "text-secondary" 
+      color: "text-orange-400" 
     },
     { 
       label: "Completed", 
       value: tasks.filter(t => t.status === 'completed').length.toString(), 
       icon: CheckCircle,
       color: "text-green-400" 
-    },
-    { 
-      label: "Pending Review", 
-      value: tasks.filter(t => t.status === 'submitted').length.toString(), 
-      icon: Clock,
-      color: "text-yellow-400" 
     },
   ]
 
@@ -170,7 +176,7 @@ export default function EmployerDashboard() {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
           {stats.map((stat) => {
             const Icon = stat.icon
             return (
@@ -227,8 +233,18 @@ export default function EmployerDashboard() {
                         )}
                       </div>
                       <div className="flex gap-6 text-sm text-muted-foreground">
-                        <span>
-                          Budget: <span className="text-primary font-semibold">{task.totalBudget} MNEE</span>
+                        <span className="flex items-center gap-2">
+                          Budget: 
+                          <span className={task.paymentMethod === 'ETH' ? "text-blue-400 font-semibold" : "text-purple-400 font-semibold"}>
+                            {task.totalBudget} {task.paymentMethod === 'ETH' ? 'ETH' : 'MNEE'}
+                          </span>
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                            task.paymentMethod === 'ETH' 
+                              ? 'bg-blue-500/20 text-blue-300' 
+                              : 'bg-purple-500/20 text-purple-300'
+                          }`}>
+                            {task.paymentMethod === 'ETH' ? '💎 ETH' : '⚡ MNEE'}
+                          </span>
                         </span>
                         {task.deadline && (
                           <span>Deadline: {new Date(task.deadline).toLocaleDateString()}</span>

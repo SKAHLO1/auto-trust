@@ -21,6 +21,7 @@ interface Task {
   creatorId: string
   deadline?: string
   createdAt: string
+  paymentMethod?: 'MNEE' | 'ETH'
 }
 
 export default function DeveloperDashboard() {
@@ -85,10 +86,20 @@ export default function DeveloperDashboard() {
     }
   }
 
+  const mneeTasks = tasks.filter(t => !t.paymentMethod || t.paymentMethod === 'MNEE')
+  const ethTasks = tasks.filter(t => t.paymentMethod === 'ETH')
+
   const stats = [
     { 
-      label: "Available Tasks", 
-      value: tasks.length.toString(), 
+      label: "MNEE Tasks", 
+      value: mneeTasks.length.toString(), 
+      icon: Briefcase,
+      color: "text-purple-400",
+      bgColor: "bg-purple-500/20"
+    },
+    { 
+      label: "ETH Tasks", 
+      value: ethTasks.length.toString(), 
       icon: Briefcase,
       color: "text-blue-400",
       bgColor: "bg-blue-500/20"
@@ -102,17 +113,10 @@ export default function DeveloperDashboard() {
     },
     { 
       label: "Total Earned", 
-      value: "0 MNEE", 
+      value: "0.00", 
       icon: DollarSign,
       color: "text-green-400",
       bgColor: "bg-green-500/20"
-    },
-    { 
-      label: "Success Rate", 
-      value: "0%", 
-      icon: TrendingUp,
-      color: "text-purple-400",
-      bgColor: "bg-purple-500/20"
     },
   ]
 
@@ -124,7 +128,7 @@ export default function DeveloperDashboard() {
           <div className="flex justify-between items-start">
             <div>
               <h1 className="text-4xl font-bold mb-2">Developer Dashboard</h1>
-              <p className="text-muted-foreground">Find tasks and start earning MNEE</p>
+              <p className="text-muted-foreground">Find tasks and earn in MNEE or ETH</p>
             </div>
             <div className="flex gap-3">
               <WalletConnectButton className="bg-primary text-primary-foreground hover:bg-primary/90" />
@@ -242,8 +246,17 @@ export default function DeveloperDashboard() {
                         {task.description}
                       </p>
                       <div className="flex gap-6 text-sm">
-                        <span className="text-primary font-semibold">
-                          {task.totalBudget} MNEE
+                        <span className="flex items-center gap-2">
+                          <span className={task.paymentMethod === 'ETH' ? "text-blue-400 font-semibold" : "text-purple-400 font-semibold"}>
+                            {task.totalBudget} {task.paymentMethod === 'ETH' ? 'ETH' : 'MNEE'}
+                          </span>
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                            task.paymentMethod === 'ETH' 
+                              ? 'bg-blue-500/20 text-blue-300' 
+                              : 'bg-purple-500/20 text-purple-300'
+                          }`}>
+                            {task.paymentMethod === 'ETH' ? '💎 ETH' : '⚡ MNEE'}
+                          </span>
                         </span>
                         {task.deadline && (
                           <span className="text-muted-foreground">
