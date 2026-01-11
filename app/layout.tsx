@@ -14,26 +14,37 @@ const _geistMono = Geist_Mono({ subsets: ["latin"] })
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "AutoTrust - Programmable Trust for Work",
-  description: "Escrow + AI verification + MNEE payments for freelance work and AI services",
-  generator: "v0.app",
+  title: "AutoTrust - Decentralized Freelance Escrow Platform",
+  description: "Secure blockchain-based escrow platform powered by MNEE. Connect employers and developers with trustless payments.",
   icons: {
     icon: [
       {
-        url: "/icon-light-32x32.png",
+        url: "/icon-light.svg",
         media: "(prefers-color-scheme: light)",
+        type: "image/svg+xml",
       },
       {
-        url: "/icon-dark-32x32.png",
+        url: "/icon-dark.svg",
         media: "(prefers-color-scheme: dark)",
+        type: "image/svg+xml",
       },
       {
         url: "/icon.svg",
         type: "image/svg+xml",
       },
     ],
-    apple: "/apple-icon.png",
+    apple: "/apple-icon.svg",
   },
+  openGraph: {
+    title: "AutoTrust - Decentralized Freelance Escrow Platform",
+    description: "Secure blockchain-based escrow platform powered by MNEE blockchain",
+    type: "website",
+  },
+  manifest: "/manifest.json",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#8B5CF6" },
+    { media: "(prefers-color-scheme: dark)", color: "#1F2937" },
+  ],
 }
 
 export default function RootLayout({

@@ -1,0 +1,25 @@
+<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Apple Touch Icon - 180x180 -->
+  <!-- Purple background with white shield and purple lock -->
+  <rect width="180" height="180" rx="40" fill="#8B5CF6"/>
+  
+  <!-- Shield outline for depth -->
+  <path d="M90 38C90 38 65 45 65 45C65 45 65 83 65 98C65 118 75 133 90 148C105 133 115 118 115 98C115 83 115 45 115 45C115 45 90 38 90 38Z" fill="white" opacity="0.1"/>
+  
+  <!-- Main Shield -->
+  <path d="M90 35C90 35 65 42 65 42C65 42 65 80 65 95C65 115 75 130 90 145C105 130 115 115 115 95C115 80 115 42 115 42C115 42 90 35 90 35Z" fill="white"/>
+  
+  <!-- Lock Body -->
+  <rect x="78" y="85" width="24" height="28" rx="3" fill="#8B5CF6"/>
+  
+  <!-- Lock Shackle -->
+  <path d="M82 85V75C82 70.5817 85.5817 67 90 67C94.4183 67 98 70.5817 98 75V85" stroke="#8B5CF6" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+  
+  <!-- Keyhole -->
+  <circle cx="90" cy="96" r="3.5" fill="white" opacity="0.4"/>
+  <rect x="88" y="96" width="4" height="10" rx="2" fill="white" opacity="0.4"/>
+  
+  <!-- Shine effect -->
+  <circle cx="80" cy="55" r="8" fill="white" opacity="0.15"/>
+  <circle cx="75" cy="60" r="4" fill="white" opacity="0.1"/>
+</svg>

@@ -1,0 +1,30 @@
+{
+  "name": "AutoTrust - Decentralized Freelance Escrow",
+  "short_name": "AutoTrust",
+  "description": "Secure blockchain-based escrow platform powered by MNEE blockchain",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1F2937",
+  "theme_color": "#8B5CF6",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "32x32",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/apple-icon.svg",
+      "sizes": "180x180",
+      "type": "image/svg+xml",
+      "purpose": "apple touch icon"
+    }
+  ],
+  "categories": ["finance", "business", "productivity"],
+  "orientation": "portrait-primary"
+}
