@@ -64,12 +64,14 @@ router.post('/', async (req: Request, res: Response) => {
             );
 
             // Update escrow status
-            await db.collection('escrows').doc(escrowDoc.id).update({
+            const escrowUpdateData: any = {
               status: 'released',
               releasedAt: new Date().toISOString(),
               recipientAddress,
-              mneeTransactionId: result.txId,
-            });
+            };
+            if (result.txId) escrowUpdateData.mneeTransactionId = result.txId;
+            
+            await db.collection('escrows').doc(escrowDoc.id).update(escrowUpdateData);
 
             // Update task status
             await db.collection('tasks').doc(submission.taskId).update({
